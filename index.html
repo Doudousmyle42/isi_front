@@ -60,7 +60,7 @@
                 const savedEmail = localStorage.getItem('isi_user_email');
                 const hasSubmitted = localStorage.getItem('isi_has_submitted');
                 
-                if (savedEmail && savedEmail.endsWith('@isi.com')) {
+                if (savedEmail && savedEmail.endsWith('@groupeisi.com')) {
                     setEmail(savedEmail);
                     setIsLoggedIn(true);
                     setSubmitted(hasSubmitted === 'true');
@@ -70,12 +70,12 @@
             const handleLogin = () => {
                 setError('');
 
-                if (!email.endsWith('@isi.com')) {
-                    setError('Vous devez utiliser votre email ISI (@isi.com)');
+                if (!email.endsWith('@groupeisi.com')) {
+                    setError('Vous devez utiliser votre email ISI (@groupeisi.com)');
                     return;
                 }
 
-                const emailRegex = /^[^\s@]+@isi\.com$/;
+                const emailRegex = /^[^\s@]+@groupeisi\.com$/;
                 if (!emailRegex.test(email)) {
                     setError('Format d\'email invalide');
                     return;
@@ -173,11 +173,11 @@
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             onKeyPress={(e) => handleKeyPress(e, handleLogin)}
-                                            placeholder="votre.nom@isi.com"
+                                            placeholder="votre.nom@groupeisi.com"
                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                                         />
                                         <p className="mt-2 text-sm text-gray-500">
-                                            Utilisez votre email institutionnel @isi.com
+                                            Utilisez votre email institutionnel @groupeisi.com
                                         </p>
                                     </div>
 
