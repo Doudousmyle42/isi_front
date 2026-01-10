@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Boîte à Idées ISI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icônes SVG
+        const Download = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+        );
+
+        const Filter = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+        );
+
+        const BarChart = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+        );
+
+        const Refresh = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        );
+
+        function AdminPanel() {
+            const [ideas, setIdeas] = useState([]);
+            const [stats, setStats] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [filter, setFilter] = useState('all');
+            const [password, setPassword] = useState('');
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+            // ⚠️ IMPORTANT : Remplacez par l'URL de votre backend
+            const API_URL = 'https://votre-backend-flask.railway.app';
+            
+            // Mot de passe simple (à changer !)
+            const ADMIN_PASSWORD = 'isi@2025';
+
+            const handleLogin = () => {
+                if (password === ADMIN_PASSWORD) {
+                    setIsAuthenticated(true);
+                    loadData();
+                } else {
+                    alert('Mot de passe incorrect !');
+                }
+            };
+
+            const loadData = async () => {
+                setLoading(true);
+                try {
+                    // Charger les idées
+                    const ideasResponse = await fetch(`${API_URL}/api/ideas`);
+                    const ideasData = await ideasResponse.json();
+                    
+                    // Charger les statistiques
+                    const statsResponse = await fetch(`${API_URL}/api/stats`);
+                    const statsData = await statsResponse.json();
+                    
+                    if (ideasData.success) {
+                        setIdeas(ideasData.ideas);
+                    }
+                    
+                    if (statsData.success) {
+                        setStats(statsData.stats);
+                    }
+                } catch (error) {
+                    console.error('Erreur de chargement:', error);
+                    alert('Erreur lors du chargement des données');
+                }
+                setLoading(false);
+            };
+
+            const exportToCSV = () => {
+                const filteredIdeas = filter === 'all' ? ideas : ideas.filter(i => i.category === filter);
+                
+                let csv = 'Email,Catégorie,Idée,Date de soumission\n';
+                filteredIdeas.forEach(idea => {
+                    const row = [
+                        idea.email,
+                        idea.category,
+                        `"${idea.idea.replace(/"/g, '""')}"`,
+                        new Date(idea.timestamp).toLocaleString('fr-FR')
+                    ].join(',');
+                    csv += row + '\n';
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `idees_isi_${filter}_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+            };
+
+            const exportToJSON = () => {
+                const filteredIdeas = filter === 'all' ? ideas : ideas.filter(i => i.category === filter);
+                
+                const dataStr = JSON.stringify(filteredIdeas, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `idees_isi_${filter}_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            };
+
+            const filteredIdeas = filter === 'all' ? ideas : ideas.filter(i => i.category === filter);
+
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full">
+                            <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+                                🔐 Administration ISI
+                            </h1>
+                            <div className="space-y-4">
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                                    placeholder="Mot de passe admin"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                                <button
+                                    onClick={handleLogin}
+                                    className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                                >
+                                    Se connecter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-800">
+                                        📊 Panel d'Administration ISI
+                                    </h1>
+                                    <p className="text-gray-600 mt-1">Gestion des idées étudiantes</p>
+                                </div>
+                                <button
+                                    onClick={loadData}
+                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                >
+                                    <Refresh className="w-5 h-5" />
+                                    Actualiser
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Statistiques */}
+                        {stats && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                                <div className="bg-white rounded-xl shadow-md p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-gray-600 text-sm">Total d'idées</p>
+                                            <p className="text-3xl font-bold text-indigo-600">{stats.total_ideas}</p>
+                                        </div>
+                                        <BarChart className="w-12 h-12 text-indigo-200" />
+                                    </div>
+                                </div>
+
+                                {stats.by_category.slice(0, 3).map((cat, idx) => (
+                                    <div key={idx} className="bg-white rounded-xl shadow-md p-6">
+                                        <p className="text-gray-600 text-sm capitalize">{cat.category}</p>
+                                        <p className="text-2xl font-bold text-gray-800">{cat.count} idées</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Filtres et Export */}
+                        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                            <div className="flex flex-wrap gap-4 items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Filter className="w-5 h-5 text-gray-600" />
+                                    <select
+                                        value={filter}
+                                        onChange={(e) => setFilter(e.target.value)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    >
+                                        <option value="all">Toutes les catégories</option>
+                                        <option value="sport">Sport</option>
+                                        <option value="culture">Culture</option>
+                                        <option value="technologie">Technologie</option>
+                                        <option value="art">Art & Créativité</option>
+                                        <option value="social">Social & Communauté</option>
+                                        <option value="autre">Autre</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={exportToCSV}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                        <Download className="w-5 h-5" />
+                                        Export CSV
+                                    </button>
+                                    <button
+                                        onClick={exportToJSON}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Download className="w-5 h-5" />
+                                        Export JSON
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Liste des idées */}
+                        <div className="bg-white rounded-xl shadow-md p-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">
+                                {filteredIdeas.length} idée(s) trouvée(s)
+                            </h2>
+
+                            {loading ? (
+                                <div className="text-center py-12">
+                                    <p className="text-gray-600">Chargement...</p>
+                                </div>
+                            ) : filteredIdeas.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <p className="text-gray-600">Aucune idée pour le moment</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {filteredIdeas.map((idea) => (
+                                        <div key={idea.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium capitalize">
+                                                        {idea.category}
+                                                    </span>
+                                                    <span className="text-sm text-gray-600">{idea.email}</span>
+                                                </div>
+                                                <span className="text-xs text-gray-500">
+                                                    {new Date(idea.timestamp).toLocaleString('fr-FR')}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-800 leading-relaxed">{idea.idea}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AdminPanel />);
+    </script>
+</body>
+</html>
